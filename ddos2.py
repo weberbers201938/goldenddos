@@ -1,6 +1,6 @@
 from multiprocessing import Process, Manager
-import urlparse, ssl
-import sys, getopt, random, time
+import ssl, sys, random, time
+from urllib.parse import urlparse
 
 # Python version-specific
 if sys.version_info < (3, 0):
